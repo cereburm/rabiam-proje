@@ -1,0 +1,6 @@
+{
+  "name": "HealthMatch - Yetkinlik Bazlı Akıllı Eşleştirme Platformu",
+  "description": "Sağlık işletmeleri için açık pozisyon gereksinimleri ile çalışan yetkinlik vektörlerini optimize eden iki taraflı eşleştirme ve İK karar destek sistemi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
