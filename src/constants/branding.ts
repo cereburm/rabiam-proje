@@ -64,3 +64,56 @@ export const IMPORTANCE_LABELS: Record<string, { label: string; badge: string }>
   high: { label: 'Yüksek', badge: 'text-amber-800 bg-amber-50' },
   critical: { label: 'Kritik / Zorunlu', badge: 'text-rose-800 bg-rose-50' },
 };
+
+export const CANDIDATE_STATUS_META: Record<string, { label: string; bg: string; text: string; border: string; dot: string }> = {
+  available: {
+    label: 'Müsait / Yeni',
+    bg: 'bg-slate-100',
+    text: 'text-slate-700',
+    border: 'border-slate-200',
+    dot: 'bg-slate-400'
+  },
+  review_pending: {
+    label: 'İnceleniyor',
+    bg: 'bg-amber-50',
+    text: 'text-amber-800',
+    border: 'border-amber-200',
+    dot: 'bg-amber-500'
+  },
+  interviewing: {
+    label: 'Mülakata Çağrıldı',
+    bg: 'bg-blue-50',
+    text: 'text-blue-800',
+    border: 'border-blue-200',
+    dot: 'bg-blue-600'
+  },
+  interview_completed: {
+    label: 'Mülakat Tamamlandı',
+    bg: 'bg-indigo-50',
+    text: 'text-indigo-800',
+    border: 'border-indigo-200',
+    dot: 'bg-indigo-600'
+  },
+  placed: {
+    label: 'Kabul Edildi',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-800',
+    border: 'border-emerald-200',
+    dot: 'bg-emerald-600'
+  },
+  rejected: {
+    label: 'Reddedildi',
+    bg: 'bg-rose-50',
+    text: 'text-rose-800',
+    border: 'border-rose-200',
+    dot: 'bg-rose-600'
+  },
+  cancelled: {
+    label: 'İptal Edildi',
+    bg: 'bg-slate-100',
+    text: 'text-slate-600',
+    border: 'border-slate-200',
+    dot: 'bg-slate-400'
+  },
+};
+

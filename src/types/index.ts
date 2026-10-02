@@ -55,6 +55,49 @@ export interface EmployeeCompetency {
   lastAssessedDate?: string;
 }
 
+export type EmployeeStatus = 
+  | 'available'           // Müsait / Yeni
+  | 'review_pending'      // İnceleniyor / Değerlendirmede
+  | 'interviewing'        // Mülakata Çağrıldı
+  | 'interview_completed' // Mülakat Tamamlandı
+  | 'placed'              // Kabul Edildi / Yerleştirildi
+  | 'rejected'            // Reddedildi
+  | 'cancelled';          // İptal Edildi
+
+export interface InterviewDetails {
+  calledAt: string;
+  scheduledAt?: string;
+  interviewer?: string;
+  location?: string;
+  status: 'called' | 'scheduled' | 'completed' | 'cancelled';
+  notes?: string;
+  cancellationReason?: string;
+}
+
+export interface ActivityItem {
+  id: string;
+  type: 
+    | 'interview_called' 
+    | 'interview_cancelled' 
+    | 'status_changed' 
+    | 'favorite_added' 
+    | 'favorite_removed' 
+    | 'note_added' 
+    | 'note_deleted'
+    | 'position_created' 
+    | 'position_status_changed';
+  title: string;
+  description: string;
+  timestamp: string;
+  actor: string;
+  entityType: 'candidate' | 'position';
+  entityId: string;
+  entityName: string;
+  previousState?: any;
+  newState?: any;
+  canUndo?: boolean;
+}
+
 export interface Employee {
   id: string;
   name: string;
@@ -65,11 +108,13 @@ export interface Employee {
   education: string;
   email: string;
   phone: string;
-  status: 'available' | 'interviewing' | 'review_pending' | 'placed';
+  status: EmployeeStatus;
   competencies: EmployeeCompetency[];
   notes?: string[];
   appliedPositionId?: string;
   avatarSeed?: string;
+  isFavorite?: boolean;
+  interview?: InterviewDetails;
 }
 
 export interface CompetencyComparisonItem {

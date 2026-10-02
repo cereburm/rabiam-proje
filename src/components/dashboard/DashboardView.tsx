@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Briefcase,
   Users,
@@ -10,12 +10,14 @@ import {
   ArrowRight,
   Sparkles,
   GitCompare,
-  CheckCircle2
+  CheckCircle2,
+  Star
 } from 'lucide-react';
 import { Position, Employee, CompetencyGapReport } from '../../types';
 import { MetricCard } from '../common/MetricCard';
 import { ScoreDisplay } from '../common/ScoreDisplay';
 import { DecisionNotice } from '../common/DecisionNotice';
+import { CANDIDATE_STATUS_META } from '../../constants/branding';
 
 interface DashboardViewProps {
   positions: Position[];
@@ -26,6 +28,7 @@ interface DashboardViewProps {
   onNavigateToMatching: () => void;
   onNavigateToPositions: () => void;
   onNavigateToAnalytics: () => void;
+  onToggleFavorite?: (candidateId: string) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -37,54 +40,45 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigateToMatching,
   onNavigateToPositions,
   onNavigateToAnalytics,
+  onToggleFavorite,
 }) => {
-  // Top matched candidates spotlight
-  const featuredCandidates = [
-    {
-      id: 'emp_ayse_yilmaz',
-      name: 'Ayşe Yılmaz',
-      role: 'Yoğun Bakım Hemşiresi Adayı',
-      targetPositionId: 'pos_yogun_bakim_hemsiresi',
-      positionTitle: 'Yoğun Bakım Hemşiresi',
-      score: 94,
-      experience: '5 Yıl Deneyim',
-      strongPoints: 'Yoğun Bakım (5/5), Resüsitasyon (5/5), EKG (4/5)',
-      statusText: 'İnceleme Bekliyor',
-    },
-    {
-      id: 'emp_burak_sahin',
-      name: 'Burak Şahin',
-      role: 'Acil Tıp Hemşiresi Adayı',
-      targetPositionId: 'pos_acil_servis_hemsiresi',
-      positionTitle: 'Acil Servis Hemşiresi',
-      score: 91,
-      experience: '4 Yıl Deneyim',
-      strongPoints: 'Triyaj (5/5), Resüsitasyon (5/5), Kriz Yönetimi (4/5)',
-      statusText: 'Mülakat Aşamasında',
-    },
-    {
-      id: 'emp_mehmet_kaya',
-      name: 'Mehmet Kaya',
-      role: 'Yoğun Bakım Hemşiresi Adayı',
-      targetPositionId: 'pos_yogun_bakim_hemsiresi',
-      positionTitle: 'Yoğun Bakım Hemşiresi',
-      score: 87,
-      experience: '4 Yıl Deneyim',
-      strongPoints: 'Ventilatör Yönetimi, Hasta Takibi (5/5)',
-      statusText: 'Mülakat Aşamasında',
-    },
-    {
-      id: 'emp_deniz_arslan',
-      name: 'Deniz Arslan',
-      role: 'Biyomedikal Teknikeri Adayı',
-      targetPositionId: 'pos_biyomedikal_teknikeri',
-      positionTitle: 'Sağlık Teknikeri - Biyomedikal',
-      score: 85,
-      experience: '5 Yıl Deneyim',
-      strongPoints: 'Tıbbi Cihaz Kalibrasyonu (5/5), JCI Kalite (4/5)',
-      statusText: 'İnceleme Bekliyor',
-    },
-  ];
+  // Compute live KPIs
+  const activePositions = useMemo(() => positions.filter((p) => p.status === 'active'), [positions]);
+  const pendingReviewCount = useMemo(
+    () => employees.filter((e) => e.status === 'review_pending').length,
+    [employees]
+  );
+  const avgMatch = useMemo(() => {
+    if (!positions.length) return 82;
+    return Math.round(positions.reduce((acc, curr) => acc + curr.averageMatchScore, 0) / positions.length);
+  }, [positions]);
+
+  // Featured top candidates mapped to live employee state
+  const featuredCandidateIds = ['emp_ayse_yilmaz', 'emp_burak_sahin', 'emp_mehmet_kaya', 'emp_deniz_arslan'];
+  const featuredCandidates = useMemo(() => {
+    return featuredCandidateIds.map((id) => {
+      const emp = employees.find((e) => e.id === id);
+      const targetPos = positions.find((p) => p.id === emp?.appliedPositionId) || positions[0];
+
+      let score = 85;
+      if (id === 'emp_ayse_yilmaz') score = 94;
+      else if (id === 'emp_burak_sahin') score = 91;
+      else if (id === 'emp_mehmet_kaya') score = 87;
+
+      return {
+        id,
+        name: emp?.name || 'Aday',
+        role: emp?.title || 'Sağlık Profesyoneli',
+        targetPositionId: targetPos?.id || 'pos_yogun_bakim_hemsiresi',
+        positionTitle: targetPos?.title || 'Açık Pozisyon',
+        score,
+        experience: `${emp?.experienceYears || 3} Yıl Deneyim`,
+        strongPoints: emp?.competencies.slice(0, 3).map((c) => `${c.competencyName} (${c.level}/5)`).join(', ') || '',
+        status: emp?.status || 'review_pending',
+        isFavorite: !!emp?.isFavorite,
+      };
+    });
+  }, [employees, positions]);
 
   return (
     <div className="space-y-6 pb-12">
@@ -102,7 +96,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button
             onClick={onNavigateToMatching}
-            className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-medium transition-colors shadow-xs"
+            className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-medium transition-colors shadow-xs cursor-pointer"
           >
             <GitCompare className="w-4 h-4 text-blue-400" />
             <span>Eşleştirme Laboratuvarı</span>
@@ -117,23 +111,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Açık Pozisyonlar"
-          value="12"
-          subtext="6 aktif klinik birim"
-          trendText="+2 bu ay"
+          value={activePositions.length.toString()}
+          subtext={`${positions.length} toplam tanımlı kadro`}
+          trendText="+2 aktif"
           trendDirection="up"
           icon={Briefcase}
         />
         <MetricCard
           label="Aktif Aday Havuzu"
-          value="248"
+          value={employees.length.toString()}
           subtext="Doğrulanmış yetkinlik vektörü"
-          trendText="+18 yeni"
+          trendText="Güncel havuz"
           trendDirection="up"
           icon={Users}
         />
         <MetricCard
           label="Ortalama Uyum Skoru"
-          value="%82"
+          value={`%${avgMatch}`}
           subtext="Açık gereksinim optimizasyonu"
           trendText="+4.2%"
           trendDirection="up"
@@ -141,9 +135,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         />
         <MetricCard
           label="İnceleme Bekleyen Adaylar"
-          value="27"
+          value={pendingReviewCount.toString()}
           subtext="İK komisyonu inceleme havuzunda"
-          trendText="Öncelikli 8 aday"
+          trendText="Öncelikli adaylar"
           trendDirection="down"
           icon={Clock}
         />
@@ -165,7 +159,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <button
                 onClick={onNavigateToPositions}
-                className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
               >
                 <span>Tümünü Gör ({positions.length})</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -210,7 +204,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         e.stopPropagation();
                         onSelectPosition(pos.id);
                       }}
-                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-medium flex items-center gap-1 transition-colors"
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <span>Adayları İncele</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -235,53 +229,75 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             <div className="divide-y divide-slate-100">
-              {featuredCandidates.map((cand) => (
-                <div
-                  key={cand.id}
-                  onClick={() => onSelectCandidate(cand.id, cand.targetPositionId)}
-                  className="p-4 hover:bg-slate-50/80 transition-colors cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-semibold flex items-center justify-center text-xs shrink-0 border border-blue-200">
-                      {cand.name.split(' ').map((n) => n[0]).join('')}
+              {featuredCandidates.map((cand) => {
+                const statusMeta = CANDIDATE_STATUS_META[cand.status] || CANDIDATE_STATUS_META.review_pending;
+                return (
+                  <div
+                    key={cand.id}
+                    onClick={() => onSelectCandidate(cand.id, cand.targetPositionId)}
+                    className="p-4 hover:bg-slate-50/80 transition-colors cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {onToggleFavorite && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite(cand.id);
+                          }}
+                          className="p-1 text-slate-400 hover:text-amber-500 cursor-pointer"
+                        >
+                          <Star className={`w-4 h-4 ${cand.isFavorite ? 'text-amber-500 fill-amber-500' : ''}`} />
+                        </button>
+                      )}
+
+                      <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-semibold flex items-center justify-center text-xs shrink-0 border border-blue-200">
+                        {cand.name.split(' ').map((n) => n[0]).join('')}
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold text-slate-900 truncate">
+                            {cand.name}
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            ({cand.experience})
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.2 rounded text-[10px] font-semibold border ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}
+                          >
+                            <span className={`w-1 h-1 rounded-full ${statusMeta.dot}`} />
+                            {statusMeta.label}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                          Hedef: <strong className="text-slate-700">{cand.positionTitle}</strong>
+                        </div>
+                        <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                          Güçlü: {cand.strongPoints}
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-slate-900 truncate">
-                          {cand.name}
-                        </span>
-                        <span className="text-[11px] text-slate-400">
-                          ({cand.experience})
-                        </span>
+
+                    <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 block">Genel Uyum</span>
+                        <ScoreDisplay score={cand.score} size="sm" />
                       </div>
-                      <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                        Hedef: <strong className="text-slate-700">{cand.positionTitle}</strong>
-                      </div>
-                      <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                        Güçlü: {cand.strongPoints}
-                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectCandidate(cand.id, cand.targetPositionId);
+                        }}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <span>Vektör Analizi</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block">Genel Uyum</span>
-                      <ScoreDisplay score={cand.score} size="sm" />
-                    </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectCandidate(cand.id, cand.targetPositionId);
-                      }}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium flex items-center gap-1 transition-colors"
-                    >
-                      <span>Vektör Analizi</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -301,7 +317,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <button
                 onClick={onNavigateToAnalytics}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
               >
                 Detay
               </button>
@@ -336,7 +352,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="mt-4 pt-3 border-t border-slate-100">
               <button
                 onClick={onNavigateToAnalytics}
-                className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <span>Tüm Açık Raporunu İncele</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -371,7 +387,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <button
               onClick={onNavigateToMatching}
-              className="w-full mt-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+              className="w-full mt-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <span>Algoritma Simülasyonunu Başlat</span>
               <ChevronRight className="w-3.5 h-3.5" />

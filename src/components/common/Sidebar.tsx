@@ -6,10 +6,10 @@ import {
   Compass,
   GitCompare,
   BarChart3,
-  Sliders,
   Hospital,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  X
 } from 'lucide-react';
 import { APP_CONFIG } from '../../constants/branding';
 
@@ -25,37 +25,54 @@ interface SidebarProps {
   currentTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
   openPositionsCount: number;
+  candidatesCount?: number;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onSelectTab,
-  openPositionsCount
+  openPositionsCount,
+  candidatesCount,
+  isMobileOpen = false,
+  onCloseMobile,
 }) => {
   const navItems: { id: NavTab; label: string; icon: React.ElementType; badge?: string | number }[] = [
     { id: 'dashboard', label: 'Genel Görünüm', icon: LayoutDashboard },
     { id: 'positions', label: 'Açık Pozisyonlar', icon: Briefcase, badge: openPositionsCount },
-    { id: 'candidates', label: 'Aday & Yetenek Havuzu', icon: Users },
+    { id: 'candidates', label: 'Aday & Yetenek Havuzu', icon: Users, badge: candidatesCount },
     { id: 'competencies', label: 'Yetkinlik Havuzu', icon: Compass },
     { id: 'matching', label: 'Eşleştirme Motoru', icon: GitCompare },
     { id: 'analytics', label: 'Yetkinlik Açığı & Analitik', icon: BarChart3 },
   ];
 
-  return (
-    <aside className="w-64 bg-slate-900 text-slate-200 flex flex-col shrink-0 border-r border-slate-800 select-none">
+  const sidebarContent = (
+    <div className="w-64 bg-slate-900 text-slate-200 flex flex-col h-full border-r border-slate-800 select-none">
       {/* Brand Header */}
-      <div className="h-16 px-5 flex items-center gap-3 border-b border-slate-800/80 bg-slate-950/40">
-        <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm font-semibold tracking-tight">
-          <Hospital className="w-5 h-5 text-white" />
+      <div className="h-16 px-5 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/40">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm font-semibold tracking-tight">
+            <Hospital className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-base font-bold text-white tracking-tight leading-tight">
+              {APP_CONFIG.name}
+            </span>
+            <span className="text-[11px] text-slate-400 truncate">
+              {APP_CONFIG.subtitle}
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col min-w-0">
-          <span className="text-base font-bold text-white tracking-tight leading-tight">
-            {APP_CONFIG.name}
-          </span>
-          <span className="text-[11px] text-slate-400 truncate">
-            {APP_CONFIG.subtitle}
-          </span>
-        </div>
+
+        {onCloseMobile && (
+          <button
+            onClick={onCloseMobile}
+            className="md:hidden p-1 text-slate-400 hover:text-white rounded-lg"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Hospital / Organization Context */}
@@ -83,8 +100,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => onSelectTab(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+              onClick={() => {
+                onSelectTab(item.id);
+                if (onCloseMobile) onCloseMobile();
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 isActive
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -135,6 +155,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar */}
+      <aside className="hidden md:flex shrink-0 h-full">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Drawer Overlay */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-40 flex md:hidden">
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"
+            onClick={onCloseMobile}
+          />
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-slate-900 z-50">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
